@@ -1,0 +1,551 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro Dispatch Optimization Presentation</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+    
+    <!-- MathJax -->
+    <script>
+      MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+    <!-- Plotly for Professional Interactive Graphs -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #1e293b;
+            --secondary: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --bg-light: #f8fafc;
+            --text-main: #334155;
+            --text-light: #64748b;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 250px;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .sidebar h3 {
+            font-family: 'Merriweather', serif;
+            text-align: center;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            padding: 0 20px;
+            color: #cbd5e1;
+        }
+
+        .nav-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9em;
+            font-weight: 300;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-item:hover {
+            background-color: #334155;
+            color: white;
+        }
+
+        .nav-item.active {
+            background-color: #0f172a;
+            border-left: 4px solid var(--secondary);
+            font-weight: 600;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .slide-container {
+            width: 100%;
+            max-width: 1100px;
+            height: 85vh;
+            background: #ffffff;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            position: relative;
+            padding: 50px 70px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .slide {
+            display: none;
+            animation: fadeSlideUp 0.6s ease-out forwards;
+            height: 100%;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Merriweather', serif;
+            color: var(--primary);
+            font-size: 2.5em;
+            margin-bottom: 0.3em;
+            line-height: 1.3;
+        }
+
+        h2 {
+            font-family: 'Merriweather', serif;
+            color: var(--secondary);
+            font-size: 2em;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+            margin-top: 0;
+        }
+
+        p, li {
+            font-size: 1.15em;
+            line-height: 1.7;
+            margin-bottom: 15px;
+        }
+
+        ul {
+            padding-left: 25px;
+        }
+
+        .highlight-box {
+            background-color: #f1f5f9;
+            border-left: 5px solid var(--secondary);
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .alert-box {
+            background-color: #fef2f2;
+            border-left: 5px solid #ef4444;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            color: #991b1b;
+        }
+
+        /* Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+            height: 100%;
+        }
+
+        .grid-chart {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* Controls */
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background-color: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        button:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Math Containers */
+        .math-block {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 1.2em;
+        }
+
+        .var-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .var-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <h3>Metro Optimization Project</h3>
+        <div class="nav-item active" onclick="goToSlide(0)">1. Title</div>
+        <div class="nav-item" onclick="goToSlide(1)">2. Research Problem</div>
+        <div class="nav-item" onclick="goToSlide(2)">3. Dataset Motivation</div>
+        <div class="nav-item" onclick="goToSlide(3)">4. Time-Series Analysis</div>
+        <div class="nav-item" onclick="goToSlide(4)">5. Spatial Variance</div>
+        <div class="nav-item" onclick="goToSlide(5)">6. Optimization Variables</div>
+        <div class="nav-item" onclick="goToSlide(6)">7. LP Formulation</div>
+        <div class="nav-item" onclick="goToSlide(7)">8. Global Optimum</div>
+        <div class="nav-item" onclick="goToSlide(8)">9. Limitations</div>
+        <div class="nav-item" onclick="goToSlide(9)">10. Conclusion</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="slide-container">
+            
+            <!-- Slide 0: Cover -->
+            <div class="slide active" style="text-align: center;">
+                <h1 style="font-size: 3em; margin-bottom: 20px;">Optimizing Metro Dispatch Scheduling for Profit Maximization</h1>
+                <p style="font-size: 1.5em; color: var(--text-light); margin-bottom: 40px;">A Case Study using Bangalore Namma Metro</p>
+                
+                <div style="background: var(--bg-light); padding: 30px; border-radius: 12px; display: inline-block; margin: 0 auto;">
+                    <p style="margin: 5px 0;"><strong>Gagan Krishna S</strong> (BSDBG2506)</p>
+                    <p style="margin: 5px 0;"><strong>Garg Parashar</strong> (BSDBG2507)</p>
+                    <p style="margin: 5px 0;"><strong>Saurav Kumar</strong> (BSDBG2517)</p>
+                </div>
+                
+                <p style="margin-top: 50px; color: var(--text-light);">
+                    Indian Statistical Institute<br>Optimization and Numerical Methods Project
+                </p>
+            </div>
+
+            <!-- Slide 1: Problem -->
+            <div class="slide">
+                <h2>The Research Problem</h2>
+                <div class="grid-2">
+                    <div>
+                        <p>Urban mass transit systems operate at a severe financial deficit because they are historically designed around <strong>passenger convenience</strong>.</p>
+                        <p>The BMRCL operates a fleet of 58 trains using static timetables. Running high-frequency schedules during off-peak hours results in half-empty trains and massive operational losses.</p>
+                    </div>
+                    <div class="highlight-box">
+                        <h4 style="margin-top: 0; color: var(--secondary);"><i class="fas fa-search"></i> Research Question</h4>
+                        <p style="font-size: 1em;">What is the mathematically optimal, time-varying train dispatch schedule across the Namma Metro network that <strong>maximizes expected daily operational profit</strong>, without violating physical signaling constraints, rolling stock limits, or minimum public service mandates?</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 2: Motivation -->
+            <div class="slide">
+                <h2>Motivation for Dataset Selection</h2>
+                <p>To ground our Linear Program in reality, the core constraint must be <strong>passenger demand</strong>. We utilized secondary, empirical footfall data provided by BMRCL for the entire month of <strong>August 2025</strong>.</p>
+                
+                <div class="highlight-box">
+                    <p><strong>Why this dataset?</strong></p>
+                    <ul>
+                        <li><strong>Complete Census:</strong> It acts as a true census of all smart-card and token taps across all 69 operational stations.</li>
+                        <li><strong>Capturing True Variance:</strong> By taking an entire month, we capture real-world variance including late-night stragglers and massive demand spikes (e.g., sporting events).</li>
+                        <li><strong>Probabilistic Parameters:</strong> Aggregating historical data allows us to transition from deterministic assumptions to calculating the <em>expected value (mean)</em> of a random variable representing footfall for any given hour on a typical business day.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Slide 3: Graph 1 - Line Chart -->
+            <div class="slide">
+                <h2>Temporal Demand Analysis</h2>
+                <div class="grid-chart">
+                    <div id="lineChart" style="width: 100%; height: 500px;"></div>
+                    <div>
+                        <div class="highlight-box" style="border-left-color: var(--accent-purple);">
+                            <strong>Detailed Insight:</strong>
+                            <p style="font-size: 0.95em;">The time-series reveals severe temporal asymmetry. The system's demand is heavily <strong>bimodal</strong>.</p>
+                            <ul style="font-size: 0.95em;">
+                                <li><strong>Dead Zones:</strong> Footfall drops near zero between 01:00 and 04:00 Hrs. A static schedule wastes immense capital here.</li>
+                                <li><strong>Peak Rushes:</strong> Demand spikes aggressively during morning (08:00–10:00 Hrs) and evening (17:00–20:00 Hrs) commutes, hitting the system's capacity limits.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 4: Graph 2 - Box Plot -->
+            <div class="slide">
+                <h2>Spatial Variance & Line Disparity</h2>
+                <div class="grid-chart">
+                    <div id="boxPlot" style="width: 100%; height: 500px;"></div>
+                    <div>
+                        <div class="highlight-box" style="border-left-color: var(--accent-purple);">
+                            <strong>Detailed Insight:</strong>
+                            <p style="font-size: 0.95em;">The boxplot demonstrates massive spatial variance between the two lines, mathematically invalidating a flat-rate schedule.</p>
+                            <ul style="font-size: 0.95em;">
+                                <li><strong>Purple Line Dominance:</strong> Exhibits a significantly higher median demand and a much wider Interquartile Range (IQR).</li>
+                                <li><strong>Extreme Outliers:</strong> The top whisker of the Purple Line highlights maximum peak outliers exceeding <strong>30,000 passengers per hour</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 5: Variables Section -->
+            <div class="slide">
+                <h2>Defining Optimization Variables</h2>
+                <p>The problem is formulated as a Linear Program to maintain convexity. Let $l \in \{P, G\}$ denote lines and $t \in \{0...23\}$ denote operating hours.</p>
+                
+                <div class="var-grid">
+                    <div class="var-card">
+                        <h4 style="margin-top: 0; color: var(--secondary);">Decision Variables (Continuous)</h4>
+                        <ul>
+                            <li>$x_{l,t}$: Frequency of trains dispatched on line $l$ during hour $t$.</li>
+                            <li>$y_{l,t}$: Number of passengers successfully served on line $l$ during hour $t$.</li>
+                        </ul>
+                    </div>
+                    <div class="var-card">
+                        <h4 style="margin-top: 0; color: var(--secondary);">Parameters (Constants)</h4>
+                        <ul style="font-size: 0.9em;">
+                            <li><strong>$R = 27$:</strong> Average revenue per commuter (₹).</li>
+                            <li><strong>$C = 22818$:</strong> Operational cost per train trip (₹).</li>
+                            <li><strong>$K = 2068$:</strong> Max crush capacity of a 6-coach train.</li>
+                            <li><strong>$F = 58$:</strong> Maximum total fleet available.</li>
+                            <li><strong>$D_{l,t}$:</strong> Expected random passenger demand.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slide 6: LP Formulation -->
+            <div class="slide">
+                <h2>Mathematical Formulation</h2>
+                <p><strong>Objective Function (Expectation Type):</strong> Maximize expected daily profit $E[Z]$.</p>
+                
+                <div class="math-block">
+                    Maximize $E[Z] = \sum_{t=0}^{23} \sum_{l \in \{P,G\}} (27 \cdot y_{l,t} - 22818 \cdot x_{l,t})$
+                </div>
+
+                <p><strong>Subject to Constraints:</strong></p>
+                <div style="font-size: 1.1em; display: flex; justify-content: center;">
+                    <table style="border-spacing: 15px 10px;">
+                        <tr><td align="right">$y_{l,t} \le 2068 \cdot x_{l,t}$</td><td>(Physical Capacity)</td></tr>
+                        <tr><td align="right">$y_{l,t} \le D_{l,t}$</td><td>(Expected Demand Limit)</td></tr>
+                        <tr><td align="right">$x_{P,t} + x_{G,t} \le 58$</td><td>(Fleet / Rolling Stock Limit)</td></tr>
+                        <tr><td align="right">$x_{l,t} \le 20$</td><td>(Signaling Safety Upper Bound - 3 min headway)</td></tr>
+                        <tr><td align="right">$x_{l,t} \ge 3$</td><td>(Minimum Civic Mandate - 20 min headway)</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Slide 7: Findings -->
+            <div class="slide">
+                <h2>Discussion of Findings</h2>
+                <p>By keeping variables $(x, y)$ continuous, the constraints form a bounded convex polyhedron. Solved via the Simplex algorithm utilizing the <code>lpSolve</code> package in R.</p>
+                
+                <div class="highlight-box" style="text-align: center; border-left: none; background: #e0f2fe; border: 2px solid var(--secondary);">
+                    <h3 style="margin: 0; color: var(--primary);">Global Optimum Found</h3>
+                    <p style="font-size: 1.5em; font-weight: bold; color: var(--secondary); margin: 10px 0;">Expected Daily Profit: ₹8,102,022.41</p>
+                    <p style="margin: 0; font-size: 0.9em;">Revenue: ₹15,267,393.00 | Operations Cost: ₹7,165,370.59</p>
+                </div>
+
+                <ul>
+                    <li>The solver allocated $\sum x_{P,t} = 174.97$ daily trips to Purple and $\sum x_{G,t} = 139.06$ to Green.</li>
+                    <li><strong>Total optimal trips: ~314.</strong> This is a massive reduction from the real-world frequency of ~800 daily trips.</li>
+                    <li>The algorithm successfully shifted the fleet to target extreme peaks, while dropping strictly to the absolute minimum mandate (3 trains/hr) during dead zones.</li>
+                </ul>
+            </div>
+
+            <!-- Slide 8: Limitations -->
+            <div class="slide">
+                <h2>Limitations & The "Hidden Constraint"</h2>
+                
+                <div class="alert-box">
+                    <strong>Limitation: Purely Financial Objective</strong><br>
+                    Because "customer satisfaction" and "wait time" were not quantified as negative cost coefficients in our model, the algorithm actively sacrificed commuter comfort for operational efficiency.
+                </div>
+
+                <p><strong>The Hidden Constraint Revealed:</strong></p>
+                <p>The LP solver ruthlessly eliminated "convenience trips," forcing passengers to wait longer so that every dispatched train operated at its absolute maximum crush capacity (2068 passengers). </p>
+                <p>This demonstrates mathematically that BMRCL operates with an unquantified <em>hidden constraint—civic convenience</em>. They intentionally operate at a massive financial deficit compared to the mathematical ideal to prevent urban gridlock and maintain commuter sanity.</p>
+            </div>
+
+            <!-- Slide 9: Conclusion -->
+            <div class="slide">
+                <h2>Conclusion & Future Directions</h2>
+                <p>The optimization model successfully found the mathematical global maximum for transit profitability, highlighting the tension between economics and public utility.</p>
+                
+                <div class="highlight-box" style="border-left-color: var(--accent-green);">
+                    <h4 style="margin-top: 0; color: var(--accent-green);">Future Model Iteration: Non-Linear Programming</h4>
+                    <p>In future iterations, this model should be advanced to a <strong>Non-Linear Program (NLP)</strong>.</p>
+                    <p>By introducing an exponential <strong>"Wait-Time Penalty"</strong> coefficient into the objective function (where profit is penalized for every minute a passenger waits over 5 minutes), the model could find the true <em>Pareto-optimal balance</em> between corporate financial sustainability and public passenger satisfaction.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Floating Controls -->
+        <div class="controls">
+            <button id="prevBtn" onclick="changeSlide(-1)" disabled><i class="fas fa-chevron-left"></i> Prev</button>
+            <button id="nextBtn" onclick="changeSlide(1)">Next <i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <script>
+        // Data approximations based on report visual parameters
+        const hours = ['00:00','01:00','02:00','03:00','04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00'];
+        const purpleDemand = [0, 0, 0, 0, 500, 2000, 5000, 12000, 22000, 28000, 22000, 17000, 16000, 16000, 15000, 16500, 22000, 28000, 32717, 27000, 18000, 12000, 7000, 1000];
+        const greenDemand = [0, 0, 0, 0, 500, 2000, 4000, 10000, 18000, 20000, 16000, 13000, 13500, 14000, 14500, 14500, 16500, 18500, 20765, 19000, 14000, 9000, 5000, 500];
+
+        // Render Plotly Line Chart
+        const renderLineChart = () => {
+            const tracePurple = { x: hours, y: purpleDemand, mode: 'lines+markers', name: 'Purple Line', line: {color: '#8b5cf6', width: 3}, marker: {size: 6} };
+            const traceGreen = { x: hours, y: greenDemand, mode: 'lines+markers', name: 'Green Line', line: {color: '#10b981', width: 3}, marker: {size: 6} };
+            
+            const layout = {
+                title: 'Expected Hourly Passenger Demand',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                xaxis: { title: 'Operating Hour', tickangle: -45 },
+                yaxis: { title: 'Expected Passengers (D_l,t)' },
+                margin: { l: 60, r: 20, t: 50, b: 80 },
+                legend: { orientation: 'h', y: -0.2 }
+            };
+            Plotly.newPlot('lineChart', [traceGreen, tracePurple], layout, {responsive: true, displayModeBar: false});
+        };
+
+        // Render Plotly Box Plot
+        const renderBoxPlot = () => {
+            const tracePurpleBox = { y: purpleDemand, type: 'box', name: 'Purple Line', marker: {color: '#8b5cf6'}, boxpoints: 'outliers' };
+            const traceGreenBox = { y: greenDemand, type: 'box', name: 'Green Line', marker: {color: '#10b981'}, boxpoints: 'outliers' };
+            
+            const layout = {
+                title: 'Demand Distribution & Variance by Line',
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                yaxis: { title: 'Expected Passengers per Hour' },
+                margin: { l: 60, r: 20, t: 50, b: 40 },
+                showlegend: false
+            };
+            Plotly.newPlot('boxPlot', [traceGreenBox, tracePurpleBox], layout, {responsive: true, displayModeBar: false});
+        };
+
+        // Navigation Logic
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const navItems = document.querySelectorAll('.nav-item');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        function updateUI() {
+            slides.forEach((slide, index) => {
+                slide.classList.toggle('active', index === currentSlideIndex);
+            });
+            navItems.forEach((item, index) => {
+                item.classList.toggle('active', index === currentSlideIndex);
+            });
+            prevBtn.disabled = currentSlideIndex === 0;
+            nextBtn.disabled = currentSlideIndex === slides.length - 1;
+
+            // Render charts when their slides become active
+            if (currentSlideIndex === 3) renderLineChart();
+            if (currentSlideIndex === 4) renderBoxPlot();
+        }
+
+        function changeSlide(direction) {
+            currentSlideIndex += direction;
+            if (currentSlideIndex < 0) currentSlideIndex = 0;
+            if (currentSlideIndex >= slides.length) currentSlideIndex = slides.length - 1;
+            updateUI();
+        }
+
+        function goToSlide(index) {
+            currentSlideIndex = index;
+            updateUI();
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' && currentSlideIndex < slides.length - 1) changeSlide(1);
+            else if (e.key === 'ArrowLeft' && currentSlideIndex > 0) changeSlide(-1);
+        });
+        
+        // Initial Chart renders in case user clicks fast
+        setTimeout(() => {
+            renderLineChart();
+            renderBoxPlot();
+        }, 1000);
+
+    </script>
+</body>
+</html>
